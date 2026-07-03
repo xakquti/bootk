@@ -1,14 +1,14 @@
 package ru.example.edu.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import ru.example.edu.dto.PersonDTO;
-import ru.example.edu.dto.PersonRegisterDto;
+import ru.example.edu.dto.*;
 import ru.example.edu.entity.Authority;
 import ru.example.edu.entity.Department;
 import ru.example.edu.entity.Person;
@@ -18,18 +18,17 @@ import ru.example.edu.exception.PersonNotFoundException;
 import ru.example.edu.repository.AuthorityRepository;
 import ru.example.edu.repository.DepartmentRepository;
 import ru.example.edu.repository.PersonRepository;
+import ru.example.edu.security.AuthService;
 import ru.example.edu.service.PersonService;
 import ru.example.edu.util.PersonMapper;
 
+import javax.naming.AuthenticationException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,7 +38,24 @@ public class PersonServiceImpl implements PersonService {
     private final PersonRepository personRepository;
     private final DepartmentRepository departmentRepository;
     private final AuthorityRepository authorityRepository;
+    private final AuthService authService;
     private final PasswordEncoder passwordEncoder;
+
+    @Override
+    public AuthDto singIn(UserCredentialsDto userCredentialsDto) throws AuthenticationException {
+        Person person = findByCredentials(userCredentialsDto);
+        return authService.generateAuthToken(person.getUsername());
+    }
+
+    @Override
+    public AuthDto refreshToken(RefreshTokenDto refreshTokenDto) throws Exception {
+        String refreshToken = refreshTokenDto.getToken();
+        if (refreshToken != null && authService.validateJwtToken(refreshToken)) {
+            Person person = findByUserName(authService.getUserNameFromToken(refreshToken));
+            return authService.refreshBaseToken(person.getUsername(), refreshToken);
+        }
+        throw new AuthenticationException("Invalid refresh token!");
+    }
 
     @Override
     public List<PersonDTO> getAllPersons() {
@@ -55,6 +71,7 @@ public class PersonServiceImpl implements PersonService {
     }
 
     @Override
+    @Transactional
     public PersonDTO createPerson(PersonRegisterDto dto) {
 
         if (personRepository.findByUsername(dto.getUsername()).isPresent()) {
@@ -137,5 +154,22 @@ public class PersonServiceImpl implements PersonService {
         } catch (IOException e){
             throw new RuntimeException("Could not save file", e);
         }
+    }
+
+    private Person findByCredentials(UserCredentialsDto userCredentialsDto) throws AuthenticationException {
+        Optional<Person> optionalPerson = personRepository.findByUsername(userCredentialsDto.getUsername());
+
+        if (optionalPerson.isPresent()) {
+            Person person = optionalPerson.get();
+            if (passwordEncoder.matches(userCredentialsDto.getPassword(), person.getPassword())) {
+                return person;
+            }
+        }
+
+        throw new AuthenticationException("Email or password is not correct");
+    }
+
+    private Person findByUserName(String userName) throws Exception{
+        return personRepository.findByUsername(userName).orElseThrow(ChangeSetPersister.NotFoundException::new);
     }
 }

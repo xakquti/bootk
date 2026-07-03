@@ -1,16 +1,21 @@
 package ru.example.edu.dto;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
 public class PersonRegisterDto {
-    private long id;
+
     private String name;
+    @JsonProperty("username")
     private String username;
     private String password;
-    @JsonProperty("department_name")
+
+    @JsonProperty("departmentName")
     private String departmentName;
-    @JsonProperty("phone_number")
     private String phoneNumber;
 }

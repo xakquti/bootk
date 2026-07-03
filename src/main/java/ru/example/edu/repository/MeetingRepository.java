@@ -12,7 +12,7 @@ import java.util.List;
 
 @Repository
 public interface MeetingRepository extends JpaRepository<Meeting, Long> {
-    @Query("SELECT DISTINCT m FROM Meeting m " + "LEFT JOIN m.meetingParticipants mp " +
+    @Query("SELECT DISTINCT m FROM Meeting m " + "LEFT JOIN FETCH m.meetingParticipants mp " +
             "WHERE m.owner.id = :personId OR mp.person.id = :personId")
     List<Meeting> findByPersonId(@Param("personId") Long personId);
 
@@ -23,7 +23,7 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
                                         @Param("status") Status status);
 
 
-    @Query("SELECT DISTINCT m FROM Meeting m " + "JOIN m.meetingParticipants mp " +
+    @Query("SELECT DISTINCT m FROM Meeting m " + "JOIN FETCH m.meetingParticipants mp " +
             "WHERE mp.person.id = :personId AND mp.status = :status")
     List<Meeting> getUserInvitations(@Param("personId") Long id, @Param("status") Status status);
 }

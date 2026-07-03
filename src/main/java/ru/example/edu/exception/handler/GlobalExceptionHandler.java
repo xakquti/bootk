@@ -6,8 +6,20 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import ru.example.edu.exception.*;
 
+import javax.naming.AuthenticationException;
+
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<String> handleException(AuthenticationException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Authentication failed" + ex.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleGenericException(Exception ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred" + ex.getMessage());
+    }
 
     @ExceptionHandler(DepartmentNotFoundException.class)
     public ResponseEntity<String> handleDepartmentNotFoundException(DepartmentNotFoundException e) {

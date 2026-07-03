@@ -21,6 +21,12 @@ import java.util.List;
 public class PersonController {
     private final PersonService personService;
 
+    @PostMapping("/register")
+    public ResponseEntity<PersonDTO> createPerson(@RequestBody PersonRegisterDto personDTO) {
+        System.out.println(personDTO);
+        return ResponseEntity.ok(personService.createPerson(personDTO));
+    }
+
     @GetMapping
     public List<PersonDTO> getAllPersons() {
         return personService.getAllPersons();
@@ -31,13 +37,11 @@ public class PersonController {
         return ResponseEntity.ok(personService.getPersonById(id));
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<PersonDTO> createPerson(@RequestBody PersonRegisterDto dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(personService.createPerson(dto));
-    }
-
-    @GetMapping("/login")
-    public ResponseEntity<PersonDTO> login(Authentication authentication) {
+    @GetMapping("/profile")
+    public ResponseEntity<PersonDTO> getCurrentPerson(Authentication authentication) {
+        if (authentication == null && !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         return ResponseEntity.ok(personService.getPersonByUserName(authentication.getName()));
     }
 
@@ -50,12 +54,6 @@ public class PersonController {
     public ResponseEntity<Void> deletePerson(@PathVariable Long id) {
         personService.deletePerson(id);
         return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/username/{username}")
-    public ResponseEntity<String> getByUsername(@PathVariable String username) {
-        PersonDTO personDTO = personService.getPersonByUserName(username);
-        return ResponseEntity.ok("User" + personDTO.getUsername() + " is registered");
     }
 
     @GetMapping("/paginated")
